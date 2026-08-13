@@ -70,6 +70,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'drawing',
         builder: (context, state) => const ComingSoonPage(feature: 'Drawing'),
       ),
+      GoRoute(
+        path: AppRoutes.settings,
+        name: 'settings',
+        builder: (context, state) => const ComingSoonPage(feature: 'Settings'),
+      ),
     ],
     errorBuilder: (context, state) => const NotFoundPage(),
   );

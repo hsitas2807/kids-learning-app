@@ -160,45 +160,25 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
               Text(
                 'Average accuracy: ${(averageAccuracy * 100).toStringAsFixed(0)}%',
               ),
+              const SizedBox(height: AppConstants.spacing8),
+              // Subject-level breakdown will be available in Phase 2
+              // once lesson content with subject tags is introduced.
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: averageAccuracy,
+                  backgroundColor: Colors.grey.shade200,
+                  color: const Color(0xFF1565C0),
+                  minHeight: 8,
+                ),
+              ),
             ],
-            const SizedBox(height: AppConstants.spacing12),
-            _buildSubjectBar('English', 0.7),
-            _buildSubjectBar('Mathematics', 0.6),
-            _buildSubjectBar('Science', 0.4),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSubjectBar(String subject, double progress) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(subject,
-                  style: const TextStyle(fontWeight: FontWeight.w500)),
-              Text('${(progress * 100).toInt()}%'),
-            ],
-          ),
-          const SizedBox(height: 4),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: progress,
-              backgroundColor: Colors.grey.shade200,
-              color: const Color(0xFF1565C0),
-              minHeight: 8,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildRewardsCard() {
     return Card(

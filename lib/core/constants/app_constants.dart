@@ -6,6 +6,9 @@ class AppConstants {
   static const int dbVersion = 1;
   static const int contentVersion = 1;
 
+  // Single child profile (Phase 1: one profile per device)
+  static const int singleChildId = 1;
+
   static const double minTouchTarget = 48.0;
 
   static const double spacing4 = 4.0;

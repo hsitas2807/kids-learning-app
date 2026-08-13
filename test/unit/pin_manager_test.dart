@@ -2,16 +2,24 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kids_learning_app/core/security/pin_manager.dart';
 
 void main() {
+  const testSalt = 'test_device_salt_abc123';
+
   group('PinManager', () {
-    test('hashPin returns consistent hash for same PIN', () {
-      final hash1 = PinManager.hashPin('1234');
-      final hash2 = PinManager.hashPin('1234');
+    test('hashPin returns consistent hash for same PIN and salt', () {
+      final hash1 = PinManager.hashPin('1234', testSalt);
+      final hash2 = PinManager.hashPin('1234', testSalt);
       expect(hash1, equals(hash2));
     });
 
     test('hashPin returns different hash for different PINs', () {
-      final hash1 = PinManager.hashPin('1234');
-      final hash2 = PinManager.hashPin('5678');
+      final hash1 = PinManager.hashPin('1234', testSalt);
+      final hash2 = PinManager.hashPin('5678', testSalt);
+      expect(hash1, isNot(equals(hash2)));
+    });
+
+    test('hashPin returns different hash for different salts', () {
+      final hash1 = PinManager.hashPin('1234', 'salt_one');
+      final hash2 = PinManager.hashPin('1234', 'salt_two');
       expect(hash1, isNot(equals(hash2)));
     });
 
@@ -30,19 +38,25 @@ void main() {
 
     test('verifyPin returns true for correct PIN', () {
       const pin = '1234';
-      final hash = PinManager.hashPin(pin);
-      expect(PinManager.verifyPin(pin, hash), isTrue);
+      final hash = PinManager.hashPin(pin, testSalt);
+      expect(PinManager.verifyPin(pin, hash, testSalt), isTrue);
     });
 
     test('verifyPin returns false for incorrect PIN', () {
       const pin = '1234';
-      final hash = PinManager.hashPin(pin);
-      expect(PinManager.verifyPin('9999', hash), isFalse);
+      final hash = PinManager.hashPin(pin, testSalt);
+      expect(PinManager.verifyPin('9999', hash, testSalt), isFalse);
+    });
+
+    test('verifyPin returns false for wrong salt', () {
+      const pin = '1234';
+      final hash = PinManager.hashPin(pin, testSalt);
+      expect(PinManager.verifyPin(pin, hash, 'wrong_salt'), isFalse);
     });
 
     test('verifyPin returns false for invalid format', () {
-      final hash = PinManager.hashPin('1234');
-      expect(PinManager.verifyPin('abc', hash), isFalse);
+      final hash = PinManager.hashPin('1234', testSalt);
+      expect(PinManager.verifyPin('abc', hash, testSalt), isFalse);
     });
   });
 }

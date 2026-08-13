@@ -18,10 +18,11 @@ class _PinEntryPageState extends State<PinEntryPage> {
   final SecureStorageService _storage = SecureStorageService();
   String _enteredPin = '';
   String? _storedHash;
+  String? _deviceSalt;
   bool _isSettingUp = false;
   String? _tempPin;
   String? _errorMessage;
-  int _attempts = 0;
+  bool _isLocked = false;
 
   @override
   void initState() {
@@ -31,33 +32,35 @@ class _PinEntryPageState extends State<PinEntryPage> {
 
   Future<void> _checkForExistingPin() async {
     final hash = await _storage.getParentPinHash();
-    if (!mounted) {
-      return;
-    }
+    final salt = await _storage.getOrCreatePinSalt();
+    final lockUntil = await _storage.getPinLockUntil();
+    final locked = lockUntil != null && lockUntil.isAfter(DateTime.now());
+    if (!mounted) return;
     setState(() {
       _storedHash = hash;
+      _deviceSalt = salt;
       _isSettingUp = hash == null;
+      _isLocked = locked;
+      if (locked && lockUntil != null) {
+        final remaining = lockUntil.difference(DateTime.now()).inMinutes + 1;
+        _errorMessage = 'Too many attempts. Try again in $remaining minute(s).';
+      }
     });
   }
 
   void _onKeyTap(String key) {
-    if (_enteredPin.length >= AppConstants.pinLength) {
-      return;
-    }
+    if (_isLocked || _enteredPin.length >= AppConstants.pinLength) return;
     setState(() {
       _enteredPin += key;
       _errorMessage = null;
     });
-
     if (_enteredPin.length == AppConstants.pinLength) {
       Future<void>.delayed(const Duration(milliseconds: 150), _processPin);
     }
   }
 
   void _onDelete() {
-    if (_enteredPin.isEmpty) {
-      return;
-    }
+    if (_enteredPin.isEmpty) return;
     setState(() {
       _enteredPin = _enteredPin.substring(0, _enteredPin.length - 1);
       _errorMessage = null;
@@ -65,6 +68,9 @@ class _PinEntryPageState extends State<PinEntryPage> {
   }
 
   Future<void> _processPin() async {
+    final salt = _deviceSalt;
+    if (salt == null) return;
+
     if (_isSettingUp) {
       if (_tempPin == null) {
         setState(() {
@@ -73,11 +79,10 @@ class _PinEntryPageState extends State<PinEntryPage> {
         });
       } else {
         if (_enteredPin == _tempPin) {
-          final hash = PinManager.hashPin(_enteredPin);
+          final hash = PinManager.hashPin(_enteredPin, salt);
           await _storage.saveParentPinHash(hash);
-          if (mounted) {
-            context.go(AppRoutes.parentDashboard);
-          }
+          await _storage.resetPinAttempts();
+          if (mounted) context.go(AppRoutes.parentDashboard);
         } else {
           setState(() {
             _errorMessage = 'PINs do not match. Try again.';
@@ -88,18 +93,27 @@ class _PinEntryPageState extends State<PinEntryPage> {
       }
     } else {
       if (_storedHash != null &&
-          PinManager.verifyPin(_enteredPin, _storedHash!)) {
-        if (mounted) {
-          context.go(AppRoutes.parentDashboard);
-        }
+          PinManager.verifyPin(_enteredPin, _storedHash!, salt)) {
+        await _storage.resetPinAttempts();
+        if (mounted) context.go(AppRoutes.parentDashboard);
       } else {
-        setState(() {
-          _attempts++;
-          _errorMessage = _attempts >= AppConstants.maxPinAttempts
-              ? 'Too many attempts. Please try again later.'
-              : 'Incorrect PIN. Try again.';
-          _enteredPin = '';
-        });
+        final attempts = await _storage.getPinAttempts() + 1;
+        await _storage.savePinAttempts(attempts);
+        if (attempts >= AppConstants.maxPinAttempts) {
+          final lockUntil = DateTime.now().add(const Duration(minutes: 5));
+          await _storage.savePinLockUntil(lockUntil);
+          setState(() {
+            _isLocked = true;
+            _errorMessage = 'Too many attempts. Try again in 5 minute(s).';
+            _enteredPin = '';
+          });
+        } else {
+          final remaining = AppConstants.maxPinAttempts - attempts;
+          setState(() {
+            _errorMessage = 'Incorrect PIN. $remaining attempt(s) remaining.';
+            _enteredPin = '';
+          });
+        }
       }
     }
   }
@@ -203,7 +217,7 @@ class _PinEntryPageState extends State<PinEntryPage> {
                         ),
                       )
                     : ElevatedButton(
-                        onPressed: () => _onKeyTap(key),
+                        onPressed: _isLocked ? null : () => _onKeyTap(key),
                         style: ElevatedButton.styleFrom(
                           shape: const CircleBorder(),
                           backgroundColor: Colors.grey.shade100,

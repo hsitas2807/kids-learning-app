@@ -16,6 +16,7 @@ class RewardsPage extends StatefulWidget {
 class _RewardsPageState extends State<RewardsPage> {
   final StorageService _storageService = StorageService();
   RewardData? _reward;
+  int _lessonsCompleted = 0;
 
   @override
   void initState() {
@@ -27,9 +28,11 @@ class _RewardsPageState extends State<RewardsPage> {
     final child = await _storageService.getChild();
     if (child != null) {
       final reward = await _storageService.getRewards(child.id);
+      final progress = await _storageService.getProgress(child.id);
       if (mounted) {
         setState(() {
           _reward = reward;
+          _lessonsCompleted = progress.length;
         });
       }
     }
@@ -101,13 +104,40 @@ class _RewardsPageState extends State<RewardsPage> {
   }
 
   Widget _buildBadgesSection() {
-    const badges = <Map<String, Object>>[
-      <String, Object>{'icon': '🌟', 'name': 'First Lesson', 'locked': false},
-      <String, Object>{'icon': '📚', 'name': 'Bookworm', 'locked': true},
-      <String, Object>{'icon': '🔢', 'name': 'Math Wizard', 'locked': true},
-      <String, Object>{'icon': '🎨', 'name': 'Artist', 'locked': true},
-      <String, Object>{'icon': '🏃', 'name': '7-Day Streak', 'locked': true},
-      <String, Object>{'icon': '🎯', 'name': 'Perfect Score', 'locked': true},
+    // Badge unlock conditions derived from real progress/reward data.
+    final streak = _reward?.streakDays ?? 0;
+    final stars = _reward?.stars ?? 0;
+    final badges = <Map<String, Object>>[
+      <String, Object>{
+        'icon': '🌟',
+        'name': 'First Lesson',
+        'locked': _lessonsCompleted == 0,
+      },
+      <String, Object>{
+        'icon': '📚',
+        'name': 'Bookworm',
+        'locked': _lessonsCompleted < 10,
+      },
+      <String, Object>{
+        'icon': '🔢',
+        'name': 'Math Wizard',
+        'locked': stars < 50,
+      },
+      <String, Object>{
+        'icon': '🎨',
+        'name': 'Artist',
+        'locked': _lessonsCompleted < 5,
+      },
+      <String, Object>{
+        'icon': '🏃',
+        'name': '7-Day Streak',
+        'locked': streak < 7,
+      },
+      <String, Object>{
+        'icon': '🎯',
+        'name': 'Perfect Score',
+        'locked': stars < 100,
+      },
     ];
 
     return Expanded(

@@ -113,13 +113,6 @@ class _ProgressPageState extends State<ProgressPage> {
   }
 
   Widget _buildSubjectProgress() {
-    const subjects = <Map<String, Object>>[
-      <String, Object>{'name': 'English', 'icon': '📖', 'progress': 0.7},
-      <String, Object>{'name': 'Mathematics', 'icon': '🔢', 'progress': 0.5},
-      <String, Object>{'name': 'Science', 'icon': '🔬', 'progress': 0.3},
-      <String, Object>{'name': 'Art', 'icon': '🎨', 'progress': 0.2},
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -128,57 +121,63 @@ class _ProgressPageState extends State<ProgressPage> {
           style: Theme.of(context).textTheme.headlineSmall,
         ),
         const SizedBox(height: AppConstants.spacing12),
-        ...subjects.map((Map<String, Object> subject) {
-          return _buildSubjectCard(subject);
-        }),
-      ],
-    );
-  }
-
-  Widget _buildSubjectCard(Map<String, Object> subject) {
-    final progress = subject['progress']! as double;
-    return Card(
-      margin: const EdgeInsets.only(bottom: AppConstants.spacing12),
-      child: Padding(
-        padding: const EdgeInsets.all(AppConstants.spacing16),
-        child: Row(
-          children: [
-            Text(subject['icon']! as String,
-                style: const TextStyle(fontSize: 32)),
-            const SizedBox(width: AppConstants.spacing12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        if (_progress.isEmpty)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(AppConstants.spacing16),
+              child: Row(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        subject['name']! as String,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      Text('${(progress * 100).toInt()}%'),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      backgroundColor: Colors.grey.shade200,
-                      color: AppTheme.primaryColor,
-                      minHeight: 8,
+                  const Text('📚', style: TextStyle(fontSize: 32)),
+                  const SizedBox(width: AppConstants.spacing12),
+                  Expanded(
+                    child: Text(
+                      'Complete your first lesson to see subject progress here!',
+                      style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ),
                 ],
               ),
             ),
-          ],
-        ),
-      ),
+          )
+        else
+          // Show real progress metrics from completed lessons.
+          // Subject-level breakdown will be available once lesson content
+          // with subject tags is introduced in Phase 2.
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(AppConstants.spacing16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Overall Progress',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: AppConstants.spacing8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: _progress.isEmpty
+                          ? 0.0
+                          : (_progress
+                                  .map((ProgressData p) => p.accuracy)
+                                  .reduce((double a, double b) => a + b) /
+                              _progress.length),
+                      backgroundColor: Colors.grey.shade200,
+                      color: AppTheme.primaryColor,
+                      minHeight: 8,
+                    ),
+                  ),
+                  const SizedBox(height: AppConstants.spacing4),
+                  Text(
+                    '${_progress.length} lesson(s) completed',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
